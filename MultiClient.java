@@ -1,26 +1,59 @@
-//a client that receives the messages from the server above
+// A simple Client Server Protocol .. Client for Echo Server
 
-import java.io.*;
-import java.net.*;
-
+import java.io.BufferedReader;
+import java.io.IOException;
+import java.io.InputStreamReader;
+import java.io.PrintWriter;
+import java.net.InetAddress;
+import java.net.Socket;
 
 public class MultiClient {
-     public static void main(String[] args)throws IOException {
-          //create client socket with port number 999
-          Socket s = new Socket("localhost",999);
 
-          //to accept a data from server
-          BufferedReader br = new BufferedReader(new  InputStreamReader
-          (s.getInputStream()));
+     public static void main(String args[]) throws IOException {
 
-          //receves data as a long as server does not close client socket
+          InetAddress address = InetAddress.getLocalHost();
+          Socket s1 = null;
+          String line = null;
+          BufferedReader br = null;
+          BufferedReader is = null;
+          PrintWriter os = null;
 
-          String str;
-          while((str = br.readLine()) != null)
-          System.out.println(str);
+          try {
+               s1 = new Socket(address, 999); // You can use static final constant PORT_NUM
+               br = new BufferedReader(new InputStreamReader(System.in));
+               is = new BufferedReader(new InputStreamReader(s1.getInputStream()));
+               os = new PrintWriter(s1.getOutputStream());
+          } catch (IOException e) {
+               e.printStackTrace();
+               System.err.print("IO Exception");
+          }
 
-          //close connection
-          br.close();
-          s.close();
+          System.out.println("Client Address : " + address);
+          System.out.println("Enter Data to echo Server ( Enter QUIT to end):");
+
+          String response = null;
+          try {
+               line = br.readLine();
+               while (line.compareTo("QUIT") != 0) {
+                    os.println(line);
+                    os.flush();
+                    response = is.readLine();
+                    System.out.println("Server Response : " + response);
+                    line = br.readLine();
+
+               }
+          } catch (IOException e) {
+               e.printStackTrace();
+               System.out.println("Socket read Error");
+          } finally {
+
+               is.close();
+               os.close();
+               br.close();
+               s1.close();
+               System.out.println("Connection Closed");
+
+          }
+
      }
 }

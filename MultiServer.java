@@ -1,50 +1,105 @@
-/*
-write a program which create a server with two threads which communicate a several clients
-*/
-import java.io.*;
-import java.net.*;
 
-class MultiServer implements Runnable
-{
-     static ServerSocket ss;
+// echo server
+import java.io.BufferedReader;
+import java.io.IOException;
+import java.io.InputStreamReader;
+import java.io.PrintWriter;
+import java.net.ServerSocket;
+import java.net.Socket;
 
-     static Socket s;
+public class MultiServer {
+  public static void main(String args[]) {
 
-    public void run()
-    {
-         //find thread name
-         String name  = Thread.currentThread().getName();
-         for(;;)
-         {
-              try{
-                   System.out.println("Thread "+name+" ready to accept ...");
-                   s = ss.accept();
-                   System.out.println("Thread " +name+ " accept a connection");
-                   //for sending a message
-                   PrintStream ps = new PrintStream(s.getOutputStream());
-                   ps.println("Thread " +name+ " contacted you");
+    Socket s = null;
+    ServerSocket ss2 = null;
+    System.out.println("Server Listening......");
+    try {
+      ss2 = new ServerSocket(999); // can also use static final PORT_NUM , when defined
 
-                   //close connection
-                   ps.close();
-                   s.close();
-                   //do not close ServerSocket
-          
-              catch(IOException ie){}
-         }
+    } catch (IOException e) {
+      e.printStackTrace();  
+      System.out.println("Server error");
+
     }
-     public static void main(String[] args)throws IOException
-    {
 
-          MultiServer ms = new MultiServer();
-          //create ServerSocket with 999 port number
-          ss = new ServerSocket(999);
-          
-          //create two Thread
-          Thread t1 = new Thread(ms,"  one ");
-          Thread t2 = new Thread(ms," two ");
+    while (true) {
+      try {
+        s = ss2.accept();
+        System.out.println("connection Established");
+        ServerThread st = new ServerThread(s);
+        st.start();
 
-          //Start the thread
-          t1.start();
-          t2.start();
+      }
+
+      catch (Exception e) {
+        e.printStackTrace();
+        System.out.println("Connection Error");
+
+      }
     }
+
+  }
+
+}
+
+class ServerThread extends Thread {
+
+  String line = null;
+  BufferedReader is = null;
+  PrintWriter os = null;
+  Socket s = null;
+
+  public ServerThread(Socket s) {
+    this.s = s;
+  }
+
+  public void run() {
+    try {
+      is = new BufferedReader(new InputStreamReader(s.getInputStream()));
+      os = new PrintWriter(s.getOutputStream());
+
+    } catch (IOException e) {
+      System.out.println("IO error in server thread");
+    }
+
+    try {
+      line = is.readLine();
+      while (line.compareTo("QUIT") != 0) {
+
+        os.println(line);
+        os.flush();
+        System.out.println("Response to Client  :  " + line);
+        line = is.readLine();
+      }
+    } catch (IOException e) {
+
+      line = this.getName(); // reused String line for getting thread name
+      System.out.println("IO Error/ Client " + line + " terminated abruptly");
+    } catch (NullPointerException e) {
+      line = this.getName(); // reused String line for getting thread name
+      System.out.println("Client " + line + " Closed");
+    }
+
+    finally {
+      try {
+        System.out.println("Connection Closing..");
+        if (is != null) {
+          is.close();
+          System.out.println(" Socket Input Stream Closed");
+        }
+
+        if (os != null) {
+          os.close();
+          System.out.println("Socket Out Closed");
+        }
+        if (s != null) {
+          s.close();
+          System.out.println("Socket Closed");
+        }
+
+      } catch (IOException ie) {
+        System.out.println("Socket Close Error");
+      }
+    } // end finally
+  }
 }
